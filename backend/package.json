@@ -3,10 +3,12 @@
   "version": "1.0.0",
   "description": "",
   "main": "crud.js",
-  "proxy": "http://localhost:8545",
+  "proxy": "http://localhost:8000",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node crud.js"
+    "start": "npm run ganache & npm run deploy",
+    "ganache": "npx ganache --host 127.0.0.1 --port 8000 --gasLimit 6721975 --gasPrice 20000000000",
+    "deploy": "sleep 5 && node deploy.js"
   },
   "keywords": [],
   "author": "",
@@ -14,5 +16,8 @@
   "dependencies": {
     "solc": "^0.8.9",
     "web3": "^1.9.0"
+  },
+  "devDependencies": {
+    "ganache": "^7.9.2"
   }
 }

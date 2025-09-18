@@ -1,6 +1,6 @@
 let Web3 = require('web3');
 let Solc = require('solc');
-let web3 = new Web3(new Web3.providers.HttpProvider("HTTP://127.0.0.1:8545"));
+let web3 = new Web3(new Web3.providers.HttpProvider("HTTP://127.0.0.1:8000"));
 const fs = require('fs');
 
 const sourceCode = fs.readFileSync('./contracts/Cruds.sol').toString();
