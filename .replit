@@ -23,6 +23,10 @@ args = "Frontend"
 task = "workflow.run"
 args = "Backend Blockchain"
 
+[[workflows.workflow.tasks]]
+task = "workflow.run"
+args = "Ganache Blockchain"
+
 [[workflows.workflow]]
 name = "Frontend"
 author = "agent"
@@ -47,13 +51,26 @@ task = "shell.exec"
 args = "cd backend && npm start"
 waitForPort = 8000
 
+[[workflows.workflow]]
+name = "Ganache Blockchain"
+author = "agent"
+
+[[workflows.workflow.tasks]]
+task = "shell.exec"
+args = "cd backend && npx ganache --host 127.0.0.1 --port 8000 --gasLimit 6721975 --gasPrice 20000000000"
+waitForPort = 8000
+
+[workflows.workflow.metadata]
+outputType = "console"
+
 [[ports]]
 localPort = 5000
 externalPort = 80
 
 [[ports]]
-localPort = 43589
-externalPort = 3000
+localPort = 8000
+externalPort = 8000
+exposeLocalhost = true
 
 [deployment]
 deploymentTarget = "autoscale"

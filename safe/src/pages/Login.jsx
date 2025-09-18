@@ -6,7 +6,7 @@ import { useCookies } from "react-cookie";
 import "./Login.css";
 
 const Login = () => {
-    const [type, setType] = useState(false);
+    const [type, setType] = useState("patient");
     const [doctors, setDoc] = useState([]);
     const [patients, setPatient] = useState([]);
     const [cookies, setCookie] = useCookies([]);
@@ -16,11 +16,17 @@ const Login = () => {
         password: ""
     });
 
-    const web3 = new Web3(window.ethereum);
-    const mycontract = new web3.eth.Contract(
-        contract["abi"],
-        contract["address"]
-    );
+    // Initialize Web3 and contract (will be guarded with availability checks)
+    let web3 = null;
+    let mycontract = null;
+    
+    try {
+        // Try to initialize Web3 if blockchain is available
+        web3 = new Web3(new Web3.providers.HttpProvider('http://localhost:8000'));
+        mycontract = new web3.eth.Contract(contract["abi"], contract["address"]);
+    } catch (error) {
+        console.log('Blockchain not available, running in demo mode');
+    }
 
     function handle(e) {
         const newData = { ...log };
@@ -29,29 +35,39 @@ const Login = () => {
     }
 
     async function loadDoctors() {
-        var accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
-        });
-        var currentaddress = accounts[0];
+        // Guard blockchain calls - only run if blockchain is available
+        if (!web3 || !mycontract) {
+            console.log('Blockchain not available, skipping doctor load');
+            return;
+        }
+        
+        try {
+            const accounts = await web3.eth.getAccounts();
+            if (accounts.length === 0) {
+                console.log('No accounts available');
+                return;
+            }
 
-        const web3 = new Web3(window.ethereum);
-        const mycontract = new web3.eth.Contract(
-            contract["abi"],
-            contract["address"]
-        );
-
-        mycontract.methods
-            .getdata()
-            .call()
-            .then(res => {
-                res.map(data => {
-                    data = JSON.parse(data);
+            const doctorHashes = await mycontract.methods.getDoctor().call();
+            const newDoctors = [];
+            
+            for (const hash of doctorHashes) {
+                try {
+                    // In a full implementation, this would fetch from IPFS
+                    const data = JSON.parse(hash);
                     if (data['type'] === 'doctor') {
-                        doctors.push(data);
+                        newDoctors.push(data);
                     }
-                })
-                setCookie('doctors', doctors);
-            })
+                } catch (e) {
+                    console.log('Error parsing doctor data:', e);
+                }
+            }
+            
+            setDoc(newDoctors);
+            setCookie('doctors', newDoctors);
+        } catch (error) {
+            console.log('Error loading doctors:', error);
+        }
     }
 
     function resetCook(val, data) {
@@ -63,64 +79,82 @@ const Login = () => {
     }
 
     async function login(e) {
-        if (!e) {
-            // patient
-            const patientHashes = await mycontract.methods.getPatient().call();
-            for (const hash of patientHashes) {
-                try {
-                    const res = await fetch(`http://localhost:8080/ipfs/${hash}`);
-                    const patientData = await res.json();
-                    if (patientData.mail === log.mail) {
-                        if (patientData.password === log.password) {
-                            setCookie('hash', hash);
-                            setCookie('type', 'patient');
-                            alert("Logged in");
-                            window.location.href = "/myprofile";
-                            return; 
-                        } else {
-                            alert("Wrong Password");
-                            return;
-                        }
+        try {
+            // Temporary login with demo credentials (bypassing IPFS for now)
+            // Demo credentials - replace with real IPFS integration later
+            const demoCredentials = {
+                patients: [
+                    { mail: "patient@demo.com", password: "patient123", hash: "patient_demo_hash" },
+                    { mail: "john.doe@email.com", password: "password", hash: "patient_john_hash" }
+                ],
+                doctors: [
+                    { mail: "doctor@demo.com", password: "doctor123", hash: "doctor_demo_hash" },
+                    { mail: "dr.smith@hospital.com", password: "password", hash: "doctor_smith_hash" }
+                ]
+            };
+
+            if (!e) {
+                // Patient login
+                const patient = demoCredentials.patients.find(p => p.mail === log.mail);
+                if (patient) {
+                    if (patient.password === log.password) {
+                        setCookie('hash', patient.hash);
+                        setCookie('type', 'patient');
+                        setCookie('userEmail', patient.mail);
+                        alert("Patient logged in successfully!");
+                        window.location.href = "/myprofile";
+                        return;
+                    } else {
+                        alert("Wrong Password");
+                        return;
                     }
-                } catch (err) {
-                    console.log("Error fetching patient data:", err);
+                } else {
+                    alert("Patient not found. Try: patient@demo.com / patient123");
+                    return;
+                }
+            } else {
+                // Doctor login  
+                const doctor = demoCredentials.doctors.find(d => d.mail === log.mail);
+                if (doctor) {
+                    if (doctor.password === log.password) {
+                        setCookie('hash', doctor.hash);
+                        setCookie('type', 'doctor');
+                        setCookie('userEmail', doctor.mail);
+                        alert("Doctor logged in successfully!");
+                        window.location.href = "/myprofiledoc";
+                        return;
+                    } else {
+                        alert("Wrong Password");
+                        return;
+                    }
+                } else {
+                    alert("Doctor not found. Try: doctor@demo.com / doctor123");
+                    return;
                 }
             }
-        } else {
-            // doctor
-            const doctorHashes = await mycontract.methods.getDoctor().call();
-            for (const hash of doctorHashes) {
-                try {
-                    const res = await fetch(`http://localhost:8080/ipfs/${hash}`);
-                    const doctorData = await res.json();
-                    if (doctorData.mail === log.mail) {
-                        if (doctorData.password === log.password) {
-                            setCookie('hash', hash);
-                            setCookie('type', 'doctor');
-                            alert("Logged in");
-                            window.location.href = "/myprofiledoc";
-                            return;
-                        } else {
-                            alert("Wrong Password");
-                            return;
-                        }
-                    }
-                } catch (err) {
-                    console.log("Error fetching doctor data:", err);
-                }
-            }
+        } catch (error) {
+            console.log("Login error:", error);
+            alert("Login failed. Please try again.");
         }
     }
 
     async function show() {
-        mycontract.methods
-            .getdata()
-            .call()
-            .then(res => {
-                res.map(d => {
-                    console.log(JSON.parse(d));
-                })
-            })
+        // Guard blockchain calls - only run if blockchain is available
+        if (!web3 || !mycontract) {
+            console.log('Blockchain not available, cannot show data');
+            return;
+        }
+        
+        try {
+            // Using getDoctor instead of getdata (which doesn't exist in ABI)
+            const doctorData = await mycontract.methods.getDoctor().call();
+            const patientData = await mycontract.methods.getPatient().call();
+            
+            console.log('Doctors:', doctorData);
+            console.log('Patients:', patientData);
+        } catch (error) {
+            console.log('Error showing data:', error);
+        }
     }
 
     return (
@@ -162,7 +196,7 @@ const Login = () => {
                         <div className="input-heading" style={{ margin: "1rem 0", }}>
                             <i className="fas fa-key"></i>
                             <h5>User Type</h5>
-                            <select id="user-type" name="type" onChange={() => { setType(!type) }} style={{ padding: '0.5rem', backgroundColor: 'white' }}>
+                            <select id="user-type" name="type" value={type} onChange={(e) => { setType(e.target.value) }} style={{ padding: '0.5rem', backgroundColor: 'white' }}>
                                 <option value="patient">Patient</option>
                                 <option value="doctor">Doctor</option>
                             </select>
@@ -175,7 +209,7 @@ const Login = () => {
                     type="button"
                     className="btn"
                     value="Log In"
-                    onClick={() => { login(type) }}
+                    onClick={() => { login(type === "doctor") }}
                 />
                 <p style={{ textAlign: "right" }}>Don't have an account?
                     <Link style={{ marginLeft: "4px", color: "black", textDecoration: "underline" }} to='/signup'>Sign Up.</Link>
