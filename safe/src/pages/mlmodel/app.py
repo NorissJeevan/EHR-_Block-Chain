@@ -28,9 +28,9 @@ data["prognosis"] = encoder.fit_transform(data["prognosis"])
 
 X = data.iloc[:,:-1]
 
-svm_model = pickle.load(open('svm_model.pkl', 'rb'))
-nb_model = pickle.load(open('nb_model.pkl', 'rb'))
-rf_model = pickle.load(open('rf_model.pkl', 'rb'))
+# svm_model = pickle.load(open('svm_model.pkl', 'rb'))
+# nb_model = pickle.load(open('nb_model.pkl', 'rb'))
+# rf_model = pickle.load(open('rf_model.pkl', 'rb'))
 
 symptoms = X.columns.values
  

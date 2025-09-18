@@ -63,84 +63,52 @@ const Login = () => {
     }
 
     async function login(e) {
-        var accounts = await window.ethereum.request({
-            method: "eth_requestAccounts",
-        });
-        var currentaddress = accounts[0];
-
         if (!e) {
             // patient
-            var pats = [];
-            const vis = [];
-            await mycontract.methods
-                .getPatient()
-                .call()
-                .then(async (res) => {
-                    for (let i = res.length - 1; i >= 0; i--) {
-                        const data = await (await fetch(`http://localhost:8080/ipfs/${res[i]}`)).json();
-                        if (!vis.includes(data.mail)) {
-                            vis.push(data.mail);
-                            pats.push(res[i]);
+            const patientHashes = await mycontract.methods.getPatient().call();
+            for (const hash of patientHashes) {
+                try {
+                    const res = await fetch(`http://localhost:8080/ipfs/${hash}`);
+                    const patientData = await res.json();
+                    if (patientData.mail === log.mail) {
+                        if (patientData.password === log.password) {
+                            setCookie('hash', hash);
+                            setCookie('type', 'patient');
+                            alert("Logged in");
+                            window.location.href = "/myprofile";
+                            return; 
+                        } else {
+                            alert("Wrong Password");
+                            return;
                         }
                     }
-                });
-
-            let flag = 0;
-            pats.map(async (data) => {
-                await fetch(`http://localhost:8080/ipfs/${data}`)
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.mail === log.mail) {
-                            if (res.password === log.password) {
-                                console.log(data);
-                                setCookie('hash', data);
-                                setCookie('type', 'patient');
-                                alert("Logged in");
-                                window.location.href = "/myprofile";
-                            }
-                            else {
-                                alert("Wrong Password");
-                            }
-                        }
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-            })
-        }
-        else {
+                } catch (err) {
+                    console.log("Error fetching patient data:", err);
+                }
+            }
+        } else {
             // doctor
-            var docs = [];
-            await mycontract.methods
-                .getDoctor()
-                .call()
-                .then(res => {
-                    res.map(d => {
-                        docs.push(d);
-                    })
-                });
-
-            let flag = 0;
-            docs.map(data => {
-                fetch(`http://localhost:8080/ipfs/${data}`)
-                    .then(res => res.json())
-                    .then(res => {
-                        if (res.mail === log.mail) {
-                            if (res.password === log.password) {
-                                setCookie('hash', data);
-                                setCookie('type', 'doctor');
-                                alert("Logged in");
-                                window.location.href = "/myprofiledoc";
-                            }
-                            else {
-                                alert("Wrong Password");
-                            }
+            const doctorHashes = await mycontract.methods.getDoctor().call();
+            for (const hash of doctorHashes) {
+                try {
+                    const res = await fetch(`http://localhost:8080/ipfs/${hash}`);
+                    const doctorData = await res.json();
+                    if (doctorData.mail === log.mail) {
+                        if (doctorData.password === log.password) {
+                            setCookie('hash', hash);
+                            setCookie('type', 'doctor');
+                            alert("Logged in");
+                            window.location.href = "/myprofiledoc";
+                            return;
+                        } else {
+                            alert("Wrong Password");
+                            return;
                         }
-                    })
-                    .catch(err => {
-                        console.log(err);
-                    })
-            })
+                    }
+                } catch (err) {
+                    console.log("Error fetching doctor data:", err);
+                }
+            }
         }
     }
 

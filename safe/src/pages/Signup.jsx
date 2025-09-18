@@ -45,37 +45,35 @@ const Signup = () => {
     async function register(e) {
         const accounts = await window.ethereum.request({ method: 'eth_requestAccounts' });
         const currentaddress = accounts[0];
-
+    
         const web3 = new Web3(window.ethereum);
         const mycontract = new web3.eth.Contract(
             contract["abi"],
             contract["address"]
         );
-
+    
         if (!e) {
             // patient
-            let client = create();
-            client = create(new URL('http://127.0.0.1:5001'));
+            let client = create(new URL('http://127.0.0.1:5001'));
             const { cid } = await client.add(JSON.stringify(regp));
-            const hash = cid['_baseCache'].get('z');
-            console.log(hash);
-
+            const hash = cid.toString(); 
+    
             await mycontract.methods.addPatient(hash).send({ from: currentaddress }).then(() => {
                 alert("Account created");
+                window.location.href = "/login";
             }).catch((err) => {
                 console.log(err);
             })
         }
         else {
             // doctor
-            let client = create();
-            client = create(new URL('http://127.0.0.1:5001'))
+            let client = create(new URL('http://127.0.0.1:5001'))
             const { cid } = await client.add(JSON.stringify(regd));
-            const hash = cid['_baseCache'].get('z');
-            console.log(hash);
-
+            const hash = cid.toString();
+    
             await mycontract.methods.addDoctor(hash).send({ from: currentaddress }).then(() => {
                 alert("Account created");
+                window.location.href = "/login";
             }).catch((err) => {
                 console.log(err);
             })
