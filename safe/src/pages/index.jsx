@@ -5,7 +5,6 @@ export { default as Doctors } from './Doctors';
 export { default as Patients } from './Patients';
 export { default as Insurance } from './Insurance';
 export { default as Allergies } from './Allergies';
-export { default as PredictDisease } from './PredictDisease';
 export { default as MedicalHistory } from './MedicalHistory';
 export { default as HospitalizationHistory } from './HospitalizationHistory';
 export { default as Visits } from './Visit';
